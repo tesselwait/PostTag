@@ -5,8 +5,6 @@ public class PostTag {
 	}
 	
 	public String iteratePostTag(String a) {
-		if(a==null)
-			System.exit(0);
 		String c;
 		if(a.charAt(0)=='1') {
 			c = "1101";
@@ -32,7 +30,7 @@ public class PostTag {
 		return initString;
 	}
 	
-	public static void main(String[] args) {
+	/*public static void main(String[] args) {
 		PostTag process = new PostTag("1111111111111111");
 		String a = process.getInitString();
 		System.out.println(process.getInitString());
@@ -44,5 +42,5 @@ public class PostTag {
 			a = process.getInitString();
 			count++;
 		}
-	}
+	}*/
 }
