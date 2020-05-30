@@ -2,30 +2,36 @@ import java.util.ArrayList;
 import java.util.Collections;
 
 public class PostTagThread extends Thread{
+	private MultiThreadCrawler host;
 	private String threadName, initialString, one;
 	private int totalStrings, stepLimit, cores;
 	private PostTag iterator;
 	private ArrayList<int[]> list = new ArrayList<int[]>();
-	public PostTagThread(String a, int x, int y, int z, int c) {
+	public PostTagThread(String a, int x, int y, int z, int c, MultiThreadCrawler q) {
 		threadName = a;
 		totalStrings = y;
 		stepLimit = z;
 		cores = c;
+		host = q;
 		initialString = "";
 		one = "1";
 		for(int j=0; j<x; j++)
 			initialString = initialString + "1";
 		iterator = new PostTag(initialString);
 	}
-	
+
 	public String getInitialString() {
 		return initialString;
 	}
-	
+
+	public ArrayList<int[]> getList(){
+		return list;
+	}
+
 	public void run() {
-		System.out.println ("Thread " + 
-                Thread.currentThread().getId() + 
-                " is running"); 
+		System.out.println ("Thread " +
+                Thread.currentThread().getId() +
+                " is running");
 		for(int i=0; i<totalStrings; i++) {
 			int x = iterator.getInitString().length();
 			String a = iterator.getInitString();
@@ -48,8 +54,10 @@ public class PostTagThread extends Thread{
 			iterator.setInitString(initialString);
 		}
 		System.out.println(threadName + " output:");
-		for(int i = 0; i < list.size(); i++) {   
+		for(int i = 0; i < list.size(); i++) {
 		    System.out.println(list.get(i)[0]+": "+list.get(i)[1]);
-		}  
+		}
+		host.appendResults(list);
+		host.incrementThreadClosed();
 	}
 }
