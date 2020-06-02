@@ -33,8 +33,6 @@ public class MultiThreadCrawler{
 		for(int i=0; i<cores; i++) {
 			PostTagThread object = new PostTagThread("Thread"+i, i+3, threadSize, maxSteps, cores, crawler);
 			object.start();
-			for(int[] a: object.getList())
-				crawler.getResults().add(a);
 		}
 		while(crawler.getThreadsClosed()<cores){
 			try{
