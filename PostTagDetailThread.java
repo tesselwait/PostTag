@@ -93,7 +93,7 @@ public class PostTagDetailThread extends Thread{
 									oscillations.add(new int[3]);
 									oscillations.get(oscillations.size()-1)[0] = x-1;
 									oscillations.get(oscillations.size()-1)[1] = count+2;
-									oscillations.get(oscillations.size()-1)[2] = seedHistory.size()-1 - j; // Inferred result --
+									oscillations.get(oscillations.size()-1)[2] = seedHistory.size() - j; // Inferred result --
 									oscillStrings.add(new String[2]);
 									oscillStrings.get(oscillStrings.size()-1)[0] = Integer.toString(x-1);
 									oscillStrings.get(oscillStrings.size()-1)[1] = antecedent;
@@ -101,7 +101,7 @@ public class PostTagDetailThread extends Thread{
 									oscillations.add(new int[3]); // [seed string length, steps to a repeat, oscillation period]
 									oscillations.get(oscillations.size()-1)[0] = x;
 									oscillations.get(oscillations.size()-1)[1] = count+1;
-									oscillations.get(oscillations.size()-1)[2] = seedHistory.size()-1 - j; // Crawler result --
+									oscillations.get(oscillations.size()-1)[2] = seedHistory.size() - j; // Crawler result --
 									oscillStrings.add(new String[2]);
 									oscillStrings.get(oscillStrings.size()-1)[0] = Integer.toString(x);
 									oscillStrings.get(oscillStrings.size()-1)[1] = antecedent;
@@ -109,7 +109,7 @@ public class PostTagDetailThread extends Thread{
 									oscillations.add(new int[3]); 
 									oscillations.get(oscillations.size()-1)[0] = x+1;
 									oscillations.get(oscillations.size()-1)[1] = count;
-									oscillations.get(oscillations.size()-1)[2] = seedHistory.size()-1 - j; // Inferred result --
+									oscillations.get(oscillations.size()-1)[2] = seedHistory.size() - j; // Inferred result --
 									oscillStrings.add(new String[2]);
 									oscillStrings.get(oscillStrings.size()-1)[0] = Integer.toString(x+1);
 									oscillStrings.get(oscillStrings.size()-1)[1] = antecedent;
