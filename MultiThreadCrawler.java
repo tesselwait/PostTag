@@ -24,6 +24,37 @@ public class MultiThreadCrawler{
 		writeFlag = false;
 	}
 	
+	public void writeData() {
+		getResults().sort(Comparator.comparingInt(a -> a[0]));
+		System.out.println("Sort 1 complete.");
+		getOscillationData().sort(Comparator.comparingInt(a -> a[0]));
+		System.out.println("Sort 2 complete.");
+		getOscillationStrings().sort(Comparator.comparingInt(a -> Integer.parseInt(a[0])));
+		System.out.println("Sort 3 complete.");
+		Collections.sort(getExhaustedStepLimit());
+		System.out.println("Sort 4 complete.");
+		try (PrintWriter output = new PrintWriter("PostTagOutput.txt")) {
+			System.out.println("Results:");
+			for(int[] b: getResults())
+				output.println(b[0]+": "+b[1]);
+			output.println();
+			output.println();
+			for(int[] b: getOscillationData())
+				output.println(""+b[0]+", "+b[1]+", "+b[2]);
+			output.println();
+			output.println();
+			for(String[] c: getOscillationStrings())
+				output.println(c[0]+": "+c[1]);
+			output.println();
+			output.println();
+			for(Integer d: getExhaustedStepLimit())
+				output.println(d);
+		}
+		catch (FileNotFoundException e){
+			System.out.println(e);
+		}
+	}
+	
 	public boolean appendBusy(){
 		return writeFlag;
 	}
@@ -57,10 +88,11 @@ public class MultiThreadCrawler{
 		int cores = Runtime.getRuntime().availableProcessors(); // no oscillation limit & 16gb ram: 2 threads on 1,000,000 step limit.
 		int threadSize = 210;
 		int maxSteps = 4000000;
+		int maxOscillationHistory = 2000;
 		// Starting with "1"*x seed strings.  Process will create sets of 3 equivalent strings immediately after first 0 digit at index 0 branch with (x: seed, y: steps) -> x + i, y - i for i = [0, 1, 2]
 		// In seed string space this occurs on sets of 3 starting at (x+1) % 3 == 0.  This means given one result Q or R or S at (x+1)%3==[0, 1, 2] the two remaining results can be inferred given the first result.
 		for(int i=0; i<cores; i++) { // given output occurs in sets of 3 - 1 step decrement pattern, possible to sample 1/3 seed values via subsitute (3*i) for (i) in 2nd parameter for 3x speed increase
-			PostTagDetailThread object = new PostTagDetailThread("Thread"+i, (3*i)+3, threadSize, maxSteps, cores, crawler);
+			PostTagDetailThread object = new PostTagDetailThread("Thread"+i, (3*i)+3, threadSize, maxSteps, cores, maxOscillationHistory, crawler);
 			object.start();
 		}
 		while(crawler.getThreadsClosed()<cores){
@@ -72,35 +104,6 @@ public class MultiThreadCrawler{
 				System.out.println(e);
 			}
 		}
-		if(crawler.getThreadsClosed() == cores){
-			crawler.getResults().sort(Comparator.comparingInt(a -> a[0]));
-			System.out.println("Sort 1 complete.");
-			crawler.getOscillationData().sort(Comparator.comparingInt(a -> a[0]));
-			System.out.println("Sort 2 complete.");
-			crawler.getOscillationStrings().sort(Comparator.comparingInt(a -> Integer.parseInt(a[0])));
-			System.out.println("Sort 3 complete.");
-			Collections.sort(crawler.getExhaustedStepLimit());
-			System.out.println("Sort 4 complete.");
-			try (PrintWriter output = new PrintWriter("PostTagOutput.txt")) {
-				System.out.println("Results:");
-				for(int[] b: crawler.getResults())
-					output.println(b[0]+": "+b[1]);
-				output.println();
-				output.println();
-				for(int[] b: crawler.getOscillationData())
-					output.println(""+b[0]+", "+b[1]+", "+b[2]);
-				output.println();
-				output.println();
-				for(String[] c: crawler.getOscillationStrings())
-					output.println(c[0]+": "+c[1]);
-				output.println();
-				output.println();
-				for(Integer d: crawler.getExhaustedStepLimit())
-					output.println(d);
-			}
-			catch (FileNotFoundException e){
-				System.out.println(e);
-			}
-		}
+		crawler.writeData();
 	}
 }
