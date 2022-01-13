@@ -5,16 +5,16 @@ import java.util.*;
 public class PostTagDetailThread extends Thread{
 	private MultiThreadCrawler host;
 	private String threadName, initialString, one, antecedent;
-	private int totalStrings, stepLimit, cores;
+	private int totalStrings, stepLimit, cores, oscillHistoryCap;
 	private PostTag iterator;
 	private ArrayList<int[]> list, oscillations;
 	private ArrayList<String[]> oscillStrings;
-	private ArrayList<String> seedHistory;
+	private String[] seedHistory;// string history as array saves O(n) remove(0) ArrayList calls.  Oscillations with period > oscillHistoryCap will run to step limit
 	private ArrayList<Integer> exhaustedStepLimit;
 	private Map<Integer, ArrayList<String>> stringBuckets;
 	private boolean dataOffloaded;
 	private Random gen;
-	public PostTagDetailThread(String a, int x, int y, int z, int c, MultiThreadCrawler q) {
+	public PostTagDetailThread(String a, int x, int y, int z, int c, int b, MultiThreadCrawler q) {
 		threadName = a;
 		totalStrings = y;
 		stepLimit = z;
@@ -22,6 +22,7 @@ public class PostTagDetailThread extends Thread{
 		host = q;
 		initialString = "";
 		one = "1";
+		oscillHistoryCap = b;
 		dataOffloaded = false;
 		gen = new Random();
 		for(int j=0; j<x; j++)
@@ -67,7 +68,7 @@ public class PostTagDetailThread extends Thread{
 		for(int i=0; i<totalStrings; i++) {
 			int x = iterator.getInitString().length();
 			String a = iterator.getInitString();
-			seedHistory = new ArrayList<String>();
+			seedHistory = new String[oscillHistoryCap];
 			stringBuckets = new HashMap<Integer, ArrayList<String>>();
 			for(int count=0; a!=""&&count<stepLimit; count++) {
 				antecedent = iterator.iteratePostTag(a);
@@ -87,13 +88,13 @@ public class PostTagDetailThread extends Thread{
 				if(stringBuckets.containsKey(antecedent.length())) {
 					for(String m : stringBuckets.get(antecedent.length())) { //antecedent string length buckets search reduce filter
 						if(antecedent.equals(m)) {
-							for(int j=seedHistory.size()-1; j>=0; j--) {
-								if(antecedent.contentEquals(seedHistory.get(j))) {
+							for(int j=0; j<oscillHistoryCap; j++) {
+								if(seedHistory[(count-j)%oscillHistoryCap]!=null && antecedent.contentEquals(seedHistory[(count-j)%oscillHistoryCap])) {
 									System.out.println("String reached an oscillation.");
 									oscillations.add(new int[3]);
 									oscillations.get(oscillations.size()-1)[0] = x-1;
 									oscillations.get(oscillations.size()-1)[1] = count+2;
-									oscillations.get(oscillations.size()-1)[2] = seedHistory.size() - j; // Inferred result --
+									oscillations.get(oscillations.size()-1)[2] = j; // Inferred result --
 									oscillStrings.add(new String[2]);
 									oscillStrings.get(oscillStrings.size()-1)[0] = Integer.toString(x-1);
 									oscillStrings.get(oscillStrings.size()-1)[1] = antecedent;
@@ -101,7 +102,7 @@ public class PostTagDetailThread extends Thread{
 									oscillations.add(new int[3]); // [seed string length, steps to a repeat, oscillation period]
 									oscillations.get(oscillations.size()-1)[0] = x;
 									oscillations.get(oscillations.size()-1)[1] = count+1;
-									oscillations.get(oscillations.size()-1)[2] = seedHistory.size() - j; // Crawler result --
+									oscillations.get(oscillations.size()-1)[2] = j; // Crawler result --
 									oscillStrings.add(new String[2]);
 									oscillStrings.get(oscillStrings.size()-1)[0] = Integer.toString(x);
 									oscillStrings.get(oscillStrings.size()-1)[1] = antecedent;
@@ -109,11 +110,12 @@ public class PostTagDetailThread extends Thread{
 									oscillations.add(new int[3]); 
 									oscillations.get(oscillations.size()-1)[0] = x+1;
 									oscillations.get(oscillations.size()-1)[1] = count;
-									oscillations.get(oscillations.size()-1)[2] = seedHistory.size() - j; // Inferred result --
+									oscillations.get(oscillations.size()-1)[2] = j; // Inferred result --
 									oscillStrings.add(new String[2]);
 									oscillStrings.get(oscillStrings.size()-1)[0] = Integer.toString(x+1);
 									oscillStrings.get(oscillStrings.size()-1)[1] = antecedent;
 									count=stepLimit;
+									j=oscillHistoryCap;
 								}
 							}
 						}
@@ -122,11 +124,9 @@ public class PostTagDetailThread extends Thread{
 				if(stringBuckets.get(antecedent.length())==null)
 					stringBuckets.put(antecedent.length(), new ArrayList<String>());
 				stringBuckets.get(antecedent.length()).add(antecedent);
-				seedHistory.add(antecedent);
-				if(seedHistory.size()>500){ // limits history storage to cap ram use but will exclude instances of oscillations greater than size limit
-					stringBuckets.get(seedHistory.get(0).length()).remove(seedHistory.get(0));
-					seedHistory.remove(0);
-				}
+				if(seedHistory[count%oscillHistoryCap]!= null) // limits history storage to cap ram use but will exclude instances of oscillations greater than size limit
+					stringBuckets.get(seedHistory[count%oscillHistoryCap].length()).remove(seedHistory[count%oscillHistoryCap]);
+				seedHistory[count%oscillHistoryCap]=antecedent;
 				if(count==stepLimit-1){
 					System.out.println("String exhausted step limit");
 					exhaustedStepLimit.add(initialString.length()-1);
@@ -143,7 +143,7 @@ public class PostTagDetailThread extends Thread{
 		while(!dataOffloaded){  // prevent simultaneous writes to host ArrayList by separate threads
 			if(host.appendBusy()){ // manual alternative to synchronizedList
 				try {
-					Thread.sleep(1000*gen.nextInt(10));
+					Thread.sleep(500*gen.nextInt(10));
 				} catch (InterruptedException e) {
 					System.out.println(e);
 				}
