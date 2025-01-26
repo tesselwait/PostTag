@@ -11,7 +11,7 @@ public class PostTagDetailThread extends Thread{
 	private ArrayList<String[]> oscillStrings;
 	private String[] seedHistory;// string history as array saves O(n) remove(0) ArrayList calls.  Oscillations with period > oscillHistoryCap will run to step limit
 	private ArrayList<Integer> exhaustedStepLimit;
-	private Map<Integer, ArrayList<String>> stringBuckets;
+	private HashSet<String> previousStrings;
 	private boolean dataOffloaded;
 	private Random gen;
 	public PostTagDetailThread(String a, int x, int y, int z, int c, int b, MultiThreadCrawler q) {
@@ -43,14 +43,13 @@ public class PostTagDetailThread extends Thread{
 		for(int[] a: oscillations)
 			System.out.println(""+a[0]+", "+a[1]+", "+a[2]);
 	}
-	public void printStringBuckets(){
-		System.out.println("Start bucket set.");
-		for(ArrayList<String> a : stringBuckets.values()){
-			for(String b : a)
-				System.out.println(b);
-			System.out.println();
+
+	public void printPreviousStrings(){
+		if(previousStrings!=null){
+			Interator itr = previousStrings.iterator();
+			while(itr.hasNext())
+				System.out.println(itr.next());
 		}
-		System.out.println("End bucket set.");
 	}
 
 	public boolean dataOffloaded(){
@@ -69,7 +68,7 @@ public class PostTagDetailThread extends Thread{
 			int x = iterator.getInitString().length();
 			String a = iterator.getInitString();
 			seedHistory = new String[oscillHistoryCap];
-			stringBuckets = new HashMap<Integer, ArrayList<String>>();
+			previousStrings = new HashSet<String>();
 			for(int count=0; a!=""&&count<stepLimit; count++) {
 				antecedent = iterator.iteratePostTag(a);
 				if(iterator.getInitString().length()==1) {
@@ -85,47 +84,41 @@ public class PostTagDetailThread extends Thread{
 					list.get(list.size()-1)[1] = count-1;
 					count=stepLimit;
 				}
-				if(stringBuckets.containsKey(antecedent.length())) {
-					for(String m : stringBuckets.get(antecedent.length())) { //antecedent string length buckets search reduce filter
-						if(antecedent.equals(m)) {
-							for(int j=0; j<oscillHistoryCap; j++) {
-								if(seedHistory[(count-j)%oscillHistoryCap]!=null && antecedent.contentEquals(seedHistory[(count-j)%oscillHistoryCap])) {
-									System.out.println("String reached an oscillation.");
-									oscillations.add(new int[3]);
-									oscillations.get(oscillations.size()-1)[0] = x-1;
-									oscillations.get(oscillations.size()-1)[1] = count+2;
-									oscillations.get(oscillations.size()-1)[2] = j; // Inferred result --
-									oscillStrings.add(new String[2]);
-									oscillStrings.get(oscillStrings.size()-1)[0] = Integer.toString(x-1);
-									oscillStrings.get(oscillStrings.size()-1)[1] = antecedent;
-									// ------------------------------------------------------------------------------------
-									oscillations.add(new int[3]); // [seed string length, steps to a repeat, oscillation period]
-									oscillations.get(oscillations.size()-1)[0] = x;
-									oscillations.get(oscillations.size()-1)[1] = count+1;
-									oscillations.get(oscillations.size()-1)[2] = j; // Crawler result --
-									oscillStrings.add(new String[2]);
-									oscillStrings.get(oscillStrings.size()-1)[0] = Integer.toString(x);
-									oscillStrings.get(oscillStrings.size()-1)[1] = antecedent;
-									// ------------------------------------------------------------------------------------
-									oscillations.add(new int[3]); 
-									oscillations.get(oscillations.size()-1)[0] = x+1;
-									oscillations.get(oscillations.size()-1)[1] = count;
-									oscillations.get(oscillations.size()-1)[2] = j; // Inferred result --
-									oscillStrings.add(new String[2]);
-									oscillStrings.get(oscillStrings.size()-1)[0] = Integer.toString(x+1);
-									oscillStrings.get(oscillStrings.size()-1)[1] = antecedent;
-									count=stepLimit;
-									j=oscillHistoryCap;
-								}
-							}
+				if(previousStrings.contains(antecedent)) {
+					for(int j=0; j<oscillHistoryCap; j++) {
+						if(seedHistory[(count-j)%oscillHistoryCap]!=null && antecedent.contentEquals(seedHistory[(count-j)%oscillHistoryCap])) {
+							System.out.println("String reached an oscillation.");
+							oscillations.add(new int[3]);
+							oscillations.get(oscillations.size()-1)[0] = x-1;
+							oscillations.get(oscillations.size()-1)[1] = count+2;
+							oscillations.get(oscillations.size()-1)[2] = j; // Inferred result --
+							oscillStrings.add(new String[2]);
+							oscillStrings.get(oscillStrings.size()-1)[0] = Integer.toString(x-1);
+							oscillStrings.get(oscillStrings.size()-1)[1] = antecedent;
+							// ------------------------------------------------------------------------------------
+							oscillations.add(new int[3]); // [seed string length, steps to a repeat, oscillation period]
+							oscillations.get(oscillations.size()-1)[0] = x;
+							oscillations.get(oscillations.size()-1)[1] = count+1;
+							oscillations.get(oscillations.size()-1)[2] = j; // Crawler result --
+							oscillStrings.add(new String[2]);
+							oscillStrings.get(oscillStrings.size()-1)[0] = Integer.toString(x);
+							oscillStrings.get(oscillStrings.size()-1)[1] = antecedent;
+							// ------------------------------------------------------------------------------------
+							oscillations.add(new int[3]); 
+							oscillations.get(oscillations.size()-1)[0] = x+1;
+							oscillations.get(oscillations.size()-1)[1] = count;
+							oscillations.get(oscillations.size()-1)[2] = j; // Inferred result --
+							oscillStrings.add(new String[2]);
+							oscillStrings.get(oscillStrings.size()-1)[0] = Integer.toString(x+1);
+							oscillStrings.get(oscillStrings.size()-1)[1] = antecedent;
+							count=stepLimit;
+							j=oscillHistoryCap;
 						}
 					}
 				}
-				if(stringBuckets.get(antecedent.length())==null)
-					stringBuckets.put(antecedent.length(), new ArrayList<String>());
-				stringBuckets.get(antecedent.length()).add(antecedent);
+				previousStrings.add(antecedent);
 				if(seedHistory[count%oscillHistoryCap]!= null) // limits history storage to cap ram use but will exclude instances of oscillations greater than size limit
-					stringBuckets.get(seedHistory[count%oscillHistoryCap].length()).remove(seedHistory[count%oscillHistoryCap]);
+					previousStrings.remove(seedHistory[count%oscillHistoryCap]);
 				seedHistory[count%oscillHistoryCap]=antecedent;
 				if(count==stepLimit-1){
 					System.out.println("String exhausted step limit");
