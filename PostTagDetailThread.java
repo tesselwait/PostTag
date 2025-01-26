@@ -46,7 +46,7 @@ public class PostTagDetailThread extends Thread{
 
 	public void printPreviousStrings(){
 		if(previousStrings!=null){
-			Interator itr = previousStrings.iterator();
+			Iterator itr = previousStrings.iterator();
 			while(itr.hasNext())
 				System.out.println(itr.next());
 		}
