@@ -5,7 +5,7 @@ import java.util.*;
 public class PostTagDetailThread extends Thread{
 	private MultiThreadCrawler host;
 	private String threadName, initialString, one, antecedent;
-	private int totalStrings, stepLimit, cores, oscillHistoryCap;
+	private int stepLimit, oscillHistoryCap, newSeed;
 	private PostTag iterator;
 	private ArrayList<int[]> list, oscillations;
 	private ArrayList<String[]> oscillStrings;
@@ -14,24 +14,88 @@ public class PostTagDetailThread extends Thread{
 	private HashSet<String> previousStrings;
 	private boolean dataOffloaded;
 	private Random gen;
-	public PostTagDetailThread(String a, int x, int y, int z, int c, int b, MultiThreadCrawler q) {
+	public PostTagDetailThread(String a, int z, int b, MultiThreadCrawler q) {
 		threadName = a;
-		totalStrings = y;
 		stepLimit = z;
-		cores = c;
 		host = q;
 		initialString = "";
 		one = "1";
 		oscillHistoryCap = b;
 		dataOffloaded = false;
 		gen = new Random();
-		for(int j=0; j<x; j++)
-			initialString = initialString + "1";
 		iterator = new PostTag(initialString);
 		list = new ArrayList<int[]>();
 		oscillations = new ArrayList<int[]>();
 		exhaustedStepLimit = new ArrayList<Integer>();
 		oscillStrings = new ArrayList<String[]>();
+	}
+
+	public void runString(int q){
+		int x = q;
+		String a = String.join("", Collections.nCopies(x, one));
+		seedHistory = new String[oscillHistoryCap];
+		previousStrings = new HashSet<String>();
+		for(int count=0; a!=""&&count<stepLimit; count++) {
+			antecedent = iterator.iteratePostTag(a);
+			if(iterator.getInitString().length()==1) {
+				System.out.println("String reached null string");
+				list.add(new int[2]);
+				list.get(list.size()-1)[0] = x-1;
+				list.get(list.size()-1)[1] = count+1;
+				list.add(new int[2]);
+				list.get(list.size()-1)[0] = x;
+				list.get(list.size()-1)[1] = count;
+				list.add(new int[2]);
+				list.get(list.size()-1)[0] = x+1;
+				list.get(list.size()-1)[1] = count-1;
+				count=stepLimit;
+			}
+			if(previousStrings.contains(antecedent)) {
+				for(int j=0; j<oscillHistoryCap; j++) {
+					if(seedHistory[(count-j)%oscillHistoryCap]!=null && antecedent.contentEquals(seedHistory[(count-j)%oscillHistoryCap])) {
+						System.out.println("String reached an oscillation.");
+						oscillations.add(new int[3]);
+						oscillations.get(oscillations.size()-1)[0] = x-1;
+						oscillations.get(oscillations.size()-1)[1] = count+2;
+						oscillations.get(oscillations.size()-1)[2] = j; // Inferred result --
+						oscillStrings.add(new String[2]);
+						oscillStrings.get(oscillStrings.size()-1)[0] = Integer.toString(x-1);
+						oscillStrings.get(oscillStrings.size()-1)[1] = antecedent;
+						// ------------------------------------------------------------------------------------
+						oscillations.add(new int[3]); // [seed string length, steps to a repeat, oscillation period]
+						oscillations.get(oscillations.size()-1)[0] = x;
+						oscillations.get(oscillations.size()-1)[1] = count+1;
+						oscillations.get(oscillations.size()-1)[2] = j; // Crawler result --
+						oscillStrings.add(new String[2]);
+						oscillStrings.get(oscillStrings.size()-1)[0] = Integer.toString(x);
+						oscillStrings.get(oscillStrings.size()-1)[1] = antecedent;
+						// ------------------------------------------------------------------------------------
+						oscillations.add(new int[3]); 
+						oscillations.get(oscillations.size()-1)[0] = x+1;
+						oscillations.get(oscillations.size()-1)[1] = count;
+						oscillations.get(oscillations.size()-1)[2] = j; // Inferred result --
+						oscillStrings.add(new String[2]);
+						oscillStrings.get(oscillStrings.size()-1)[0] = Integer.toString(x+1);
+						oscillStrings.get(oscillStrings.size()-1)[1] = antecedent;
+						count=stepLimit;
+						j=oscillHistoryCap;
+					}
+				}
+			}
+			previousStrings.add(antecedent);
+			if(seedHistory[count%oscillHistoryCap]!= null) // limits history storage to cap ram use but will exclude instances of oscillations greater than size limit
+				previousStrings.remove(seedHistory[count%oscillHistoryCap]);
+			seedHistory[count%oscillHistoryCap]=antecedent;
+			if(count==stepLimit-1){
+				System.out.println("String exhausted step limit");
+				exhaustedStepLimit.add(initialString.length()-1);
+				exhaustedStepLimit.add(initialString.length());
+				exhaustedStepLimit.add(initialString.length()+1);
+			}
+			iterator.setInitString(antecedent);
+			a = iterator.getInitString();
+		}
+		System.out.println(x);
 	}
 
 	public void printOscillStrings(){
@@ -64,75 +128,18 @@ public class PostTagDetailThread extends Thread{
 		System.out.println ("Thread " +
                 Thread.currentThread().getId() +
                 " is running");
-		for(int i=0; i<totalStrings; i++) {
-			int x = iterator.getInitString().length();
-			String a = iterator.getInitString();
-			seedHistory = new String[oscillHistoryCap];
-			previousStrings = new HashSet<String>();
-			for(int count=0; a!=""&&count<stepLimit; count++) {
-				antecedent = iterator.iteratePostTag(a);
-				if(iterator.getInitString().length()==1) {
-					System.out.println("String reached null string");
-					list.add(new int[2]);
-					list.get(list.size()-1)[0] = x-1;
-					list.get(list.size()-1)[1] = count+1;
-					list.add(new int[2]);
-					list.get(list.size()-1)[0] = x;
-					list.get(list.size()-1)[1] = count;
-					list.add(new int[2]);
-					list.get(list.size()-1)[0] = x;
-					list.get(list.size()-1)[1] = count-1;
-					count=stepLimit;
+		while(host.queueEmpty()==false){
+			while(host.popBusy()){
+				try{
+					Thread.sleep(100);
+				} catch (InterruptedException e){
+					System.out.println(e);
 				}
-				if(previousStrings.contains(antecedent)) {
-					for(int j=0; j<oscillHistoryCap; j++) {
-						if(seedHistory[(count-j)%oscillHistoryCap]!=null && antecedent.contentEquals(seedHistory[(count-j)%oscillHistoryCap])) {
-							System.out.println("String reached an oscillation.");
-							oscillations.add(new int[3]);
-							oscillations.get(oscillations.size()-1)[0] = x-1;
-							oscillations.get(oscillations.size()-1)[1] = count+2;
-							oscillations.get(oscillations.size()-1)[2] = j; // Inferred result --
-							oscillStrings.add(new String[2]);
-							oscillStrings.get(oscillStrings.size()-1)[0] = Integer.toString(x-1);
-							oscillStrings.get(oscillStrings.size()-1)[1] = antecedent;
-							// ------------------------------------------------------------------------------------
-							oscillations.add(new int[3]); // [seed string length, steps to a repeat, oscillation period]
-							oscillations.get(oscillations.size()-1)[0] = x;
-							oscillations.get(oscillations.size()-1)[1] = count+1;
-							oscillations.get(oscillations.size()-1)[2] = j; // Crawler result --
-							oscillStrings.add(new String[2]);
-							oscillStrings.get(oscillStrings.size()-1)[0] = Integer.toString(x);
-							oscillStrings.get(oscillStrings.size()-1)[1] = antecedent;
-							// ------------------------------------------------------------------------------------
-							oscillations.add(new int[3]); 
-							oscillations.get(oscillations.size()-1)[0] = x+1;
-							oscillations.get(oscillations.size()-1)[1] = count;
-							oscillations.get(oscillations.size()-1)[2] = j; // Inferred result --
-							oscillStrings.add(new String[2]);
-							oscillStrings.get(oscillStrings.size()-1)[0] = Integer.toString(x+1);
-							oscillStrings.get(oscillStrings.size()-1)[1] = antecedent;
-							count=stepLimit;
-							j=oscillHistoryCap;
-						}
-					}
-				}
-				previousStrings.add(antecedent);
-				if(seedHistory[count%oscillHistoryCap]!= null) // limits history storage to cap ram use but will exclude instances of oscillations greater than size limit
-					previousStrings.remove(seedHistory[count%oscillHistoryCap]);
-				seedHistory[count%oscillHistoryCap]=antecedent;
-				if(count==stepLimit-1){
-					System.out.println("String exhausted step limit");
-					exhaustedStepLimit.add(initialString.length()-1);
-					exhaustedStepLimit.add(initialString.length());
-					exhaustedStepLimit.add(initialString.length()+1);
-				}
-				iterator.setInitString(antecedent);
-				a = iterator.getInitString();
 			}
-			System.out.println(x);
-			initialString = initialString + String.join("", Collections.nCopies(cores*3, one));
-			iterator.setInitString(initialString);
-		}
+			host.popClose();
+			newSeed=host.popSeed();
+			host.popOpen();
+			runString(newSeed);
 		while(!dataOffloaded){  // prevent simultaneous writes to host ArrayList by separate threads
 			if(host.appendBusy()){ // manual alternative to synchronizedList
 				try {
