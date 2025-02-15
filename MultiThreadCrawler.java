@@ -5,14 +5,15 @@ public class MultiThreadCrawler{
 	private ArrayList<int[]> oscillationData;
 	private ArrayList<String[]> oscillationStrings;
 	private ArrayList<Integer> exhaustedStepLimit;
-	private int threadsClosed;
-	private boolean writeFlag;
+	private int threadsClosed, seedCount, totalSeeds;
+	private boolean writeFlag, incrementFlag;
 
 	public MultiThreadCrawler(){
 		results = new ArrayList<int[]>();
 		oscillationData = new ArrayList<int[]>();
 		oscillationStrings = new ArrayList<String[]>();
-		exhaustedStepLimit = new ArrayList<Integer>();		
+		exhaustedStepLimit = new ArrayList<Integer>();
+		seedCount=3
 		threadsClosed=0;
 	}
 	public void appendResults(ArrayList<int[]> a, ArrayList<int[]> b, ArrayList<String[]> c, ArrayList<Integer> d){
@@ -54,6 +55,30 @@ public class MultiThreadCrawler{
 			System.out.println(e);
 		}
 	}
+
+	public boolean queueEmpty(){
+		if(totalSeeds>seedCourt)
+			return false;
+		else
+			return true;
+	}
+
+	public int popSeed(){
+		seedCount+=3;
+		return seedCount-3;
+	}
+
+	public boolean popBusy(){
+		return incrementFlag;
+	}
+
+	public void popOpen(){
+		incrementFlag=true;
+	}
+
+	public void popClose(){
+		incrementFlag=true;
+	}
 	
 	public boolean appendBusy(){
 		return writeFlag;
@@ -85,14 +110,14 @@ public class MultiThreadCrawler{
 	
 	public static void main(String[] args) {
 		MultiThreadCrawler crawler = new MultiThreadCrawler();
-		int cores = Runtime.getRuntime().availableProcessors(); // no oscillation limit & 16gb ram: 2 threads on 1,000,000 step limit.
-		int threadSize = 210;
+		int cores = Runtime.getRuntime().availableProcessors()-1; // no oscillation limit & 16gb ram: 2 threads on 1,000,000 step limit.
+		crawler.totalSeeds = 2000;
 		int maxSteps = 4000000;
 		int maxOscillationHistory = 2000;
 		// Starting with "1"*x seed strings.  Process will create sets of 3 equivalent strings immediately after first 0 digit at index 0 branch with (x: seed, y: steps) -> x + i, y - i for i = [0, 1, 2]
 		// In seed string space this occurs on sets of 3 starting at (x+1) % 3 == 0.  This means given one result Q or R or S at (x+1)%3==[0, 1, 2] the two remaining results can be inferred given the first result.
 		for(int i=0; i<cores; i++) { // given output occurs in sets of 3 - 1 step decrement pattern, possible to sample 1/3 seed values via subsitute (3*i) for (i) in 2nd parameter for 3x speed increase
-			PostTagDetailThread object = new PostTagDetailThread("Thread"+i, (3*i)+3, threadSize, maxSteps, cores, maxOscillationHistory, crawler);
+			PostTagDetailThread object = new PostTagDetailThread("Thread"+i, maxSteps, maxOscillationHistory, crawler);
 			object.start();
 		}
 		while(crawler.getThreadsClosed()<cores){
