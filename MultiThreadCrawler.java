@@ -13,7 +13,7 @@ public class MultiThreadCrawler{
 		oscillationData = new ArrayList<int[]>();
 		oscillationStrings = new ArrayList<String[]>();
 		exhaustedStepLimit = new ArrayList<Integer>();
-		seedCount=3
+		seedCount=3;
 		threadsClosed=0;
 	}
 	public void appendResults(ArrayList<int[]> a, ArrayList<int[]> b, ArrayList<String[]> c, ArrayList<Integer> d){
@@ -57,7 +57,7 @@ public class MultiThreadCrawler{
 	}
 
 	public boolean queueEmpty(){
-		if(totalSeeds>seedCourt)
+		if(totalSeeds>seedCount)
 			return false;
 		else
 			return true;
