@@ -73,7 +73,7 @@ public class MultiThreadCrawler{
 	}
 
 	public void popOpen(){
-		incrementFlag=true;
+		incrementFlag=false;
 	}
 
 	public void popClose(){
