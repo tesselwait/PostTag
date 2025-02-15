@@ -88,9 +88,9 @@ public class PostTagDetailThread extends Thread{
 			seedHistory[count%oscillHistoryCap]=antecedent;
 			if(count==stepLimit-1){
 				System.out.println("String exhausted step limit");
-				exhaustedStepLimit.add(initialString.length()-1);
-				exhaustedStepLimit.add(initialString.length());
-				exhaustedStepLimit.add(initialString.length()+1);
+				exhaustedStepLimit.add(x-1);
+				exhaustedStepLimit.add(x);
+				exhaustedStepLimit.add(x+1);
 			}
 			iterator.setInitString(antecedent);
 			a = iterator.getInitString();
@@ -140,6 +140,7 @@ public class PostTagDetailThread extends Thread{
 			newSeed=host.popSeed();
 			host.popOpen();
 			runString(newSeed);
+		}
 		while(!dataOffloaded){  // prevent simultaneous writes to host ArrayList by separate threads
 			if(host.appendBusy()){ // manual alternative to synchronizedList
 				try {
